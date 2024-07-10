@@ -120,12 +120,12 @@ class TTDownloadMod(loader.Module):
                             
                             # Отправка фотографий
                             if photos:
-                                await message.client.send_file(message.chat_id, photos, caption="По ссылке лень переходить было")
+                                await message.client.send_file(message.chat_id, photos, caption="По ссылке лень переходить было?")
 
                             # Отправка документов (видео/аудио)
                             if documents:
                                 for doc in documents:
-                                    await message.client.send_file(message.chat_id, doc, caption="По ссылке лень переходить было")
+                                    await message.client.send_file(message.chat_id, doc, caption="По ссылке лень переходить было?")
                     finally:
                         # Удаляем обработчик событий и сообщения
                         message.client.remove_event_handler(handler, events.NewMessage(incoming=True, from_users=chat))
@@ -133,4 +133,3 @@ class TTDownloadMod(loader.Module):
 
         except Exception as e:
             await utils.answer(message, f"Произошла ошибка: {str(e)}")
-            
