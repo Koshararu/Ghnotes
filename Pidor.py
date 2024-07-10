@@ -1,41 +1,18 @@
-# ---------------------------------------------------------------------------------
-#  /\_/\  🌐 This module was loaded через https://t.me/hikkamods_bot
-# ( o.o )  🔓 Не лицензировано.
-#  > ^ <   ⚠️ Владелец heta.hikariatama.ru не несет ответственности или интеллектуальных прав на этот скрипт
-# ---------------------------------------------------------------------------------
-# Name: TTDownloadMod
-# Description: Скачать видео/фото/аудио из TikTok
-# Author: chatGPT
-# Commands:
-# .ttd {link}
-# ---------------------------------------------------------------------------------
-
-# meta developer: chatGPT
-
 import asyncio
 import logging
 import re
 from telethon import events
 from telethon.tl.types import MessageMediaPhoto, MessageMediaDocument
-
 from .. import loader, utils
-
-chat = "@projectaltair_bot"
 
 class TTDownloadMod(loader.Module):
     """Скачать видео/фото/аудио из TikTok"""
-
-    strings = {"name": "TTDownloadMod"}
 
     async def client_ready(self, client, db):
         self.db = db
 
     async def ttdcmd(self, message):
         """.ttd {link} - Скачать видео/фото/аудио из TikTok"""
-
-        if not message.is_private:  # Проверяем, что сообщение из личной переписки
-            await utils.answer(message, "Эта команда может использоваться только в личных переписках.")
-            return
 
         args = utils.get_args_raw(message)
         if not args:
@@ -44,6 +21,7 @@ class TTDownloadMod(loader.Module):
 
         await utils.answer(message, "Скачиваю...")
 
+        chat = "@projectaltair_bot"
         bot_send_link = await message.client.send_message(chat, args)
         media_messages = []
 
@@ -56,7 +34,7 @@ class TTDownloadMod(loader.Module):
         message.client.add_event_handler(handler, events.NewMessage(incoming=True, from_users=chat))
 
         try:
-            await asyncio.sleep(5)  # Ждем ответы от бота в течение 5 секунд после последнего сообщения
+            await asyncio.sleep(2)  # Ждем ответы от бота в течение 2 секунд после последнего сообщения
             if media_messages:
                 photos = [msg.media for msg in media_messages if isinstance(msg.media, MessageMediaPhoto)]
                 documents = [msg.media for msg in media_messages if isinstance(msg.media, MessageMediaDocument)]
@@ -74,9 +52,6 @@ class TTDownloadMod(loader.Module):
             message.client.remove_event_handler(handler, events.NewMessage(incoming=True, from_users=chat))
             await bot_send_link.delete()
             await message.delete()
-            # Удаляем все сообщения бота
-            for msg in media_messages:
-                await msg.delete()
 
     async def ttacceptcmd(self, message):
         """.ttaccept {reply/id} для открытия в чате автоматического скачивания ссылок. без аргументов тоже работает.\n.ttaccept -l для показа открытых чатов"""
@@ -121,6 +96,7 @@ class TTDownloadMod(loader.Module):
             if not links:
                 return
 
+            chat = "@projectaltair_bot"
             async with message.client.conversation(chat) as conv:
                 for link in links:
                     await utils.answer(message, f"Отправляю ссылку в бот @projectaltair_bot: {link}")
@@ -137,7 +113,7 @@ class TTDownloadMod(loader.Module):
                     message.client.add_event_handler(handler, events.NewMessage(incoming=True, from_users=chat))
 
                     try:
-                        await asyncio.sleep(5)  # Ждем ответы от бота в течение 5 секунд после последнего сообщения
+                        await asyncio.sleep(2)  # Ждем ответы от бота в течение 2 секунд после последнего сообщения
                         if media_messages:
                             photos = [msg.media for msg in media_messages if isinstance(msg.media, MessageMediaPhoto)]
                             documents = [msg.media for msg in media_messages if isinstance(msg.media, MessageMediaDocument)]
@@ -154,9 +130,7 @@ class TTDownloadMod(loader.Module):
                         # Удаляем обработчик событий и сообщения
                         message.client.remove_event_handler(handler, events.NewMessage(incoming=True, from_users=chat))
                         await bot_send_link.delete()
-                        # Удаляем все сообщения бота
-                        for msg in media_messages:
-                            await msg.delete()
-                    await asyncio.sleep(5)  # Пауза между отправками для предотвращения спама
+
         except Exception as e:
             await utils.answer(message, f"Произошла ошибка: {str(e)}")
+            
