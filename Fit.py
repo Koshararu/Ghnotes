@@ -36,8 +36,6 @@ class GitaddMod(loader.Module):
         "repo_not_found": "Репозиторий не указан",
         "cfg_gh_user": "Имя пользователя на GitHub",
         "cfg_gh_repo": "Репозиторий, куда нужно загружать модули",
-        "list_files_header": "<b>Список файлов в репозитории:</b>\n",
-        "no_files_found": "<i>Файлы не найдены в репозитории.</i>",
     }
 
     def __init__(self):
@@ -56,19 +54,29 @@ class GitaddMod(loader.Module):
     async def client_ready(self, client, db):
         self.client = client
 
-    async def update_full_txt(self, username, repo, existing_files):
+    async def update_full_txt(self, username, repo):
         try:
             url = f"https://api.github.com/repos/{username}/{repo}/contents/full.txt"
             head = {
                 "Authorization": f"token {self.config['GH_TOKEN']}",
                 "Accept": "application/vnd.github.v3+json",
             }
-            if not existing_files:
-                content = ""
+            r = requests.get(url, headers=head)
+            if r.status_code == 200:
+                content = base64.b64decode(r.json()["content"]).decode("utf-8")
+                existing_files = content.strip().split("\n") if content.strip() else []
+            elif r.status_code == 404:
+                existing_files = []
             else:
-                content = "\n".join(existing_files)
+                return False
 
-            encoded_content = base64.b64encode(content.encode("utf-8")).decode("utf-8")
+            new_file_name = os.path.splitext(fname)[0]
+
+            if new_file_name not in existing_files:
+                existing_files.append(new_file_name)
+
+            new_content = "\n".join(existing_files)
+            encoded_content = base64.b64encode(new_content.encode("utf-8")).decode("utf-8")
             commit_message = "Update full.txt"
 
             git_data = {
@@ -83,149 +91,87 @@ class GitaddMod(loader.Module):
             logger.error(f"Failed to update full.txt: {e}")
             return False
 
-    async def list_files_in_repo(self, username, repo):
+    @loader.owner
+    async def gitaddcmd(self, message):
+        if self.config["GH_TOKEN"] == "TOKEN":
+            await utils.answer(message, self.strings("token_not_found", message))
+            return
+        if self.config["GH_USERNAME"] == "USERNAME":
+            await utils.answer(message, self.strings("username_not_found", message))
+            return
+        if self.config["GH_REPO"] == "REPOSITORY":
+            await utils.answer(message, self.strings("repo_not_found", message))
+            return
+        reply = await message.get_reply_message()
+        if not reply:
+            await utils.answer(message, self.strings("reply_to_file", message))
+            return
+        media = reply.media
+        if not media:
+            await utils.answer(message, self.strings("reply_to_file", message))
+            return
         try:
-            url = f"https://api.github.com/repos/{username}/{repo}/contents"
+            fname = (reply.media.document.attributes[0]).file_name
+        except AttributeError:
+            await utils.answer(message, self.strings("error_file", message))
+            return
+        try:
+            file = await message.client.download_file(media)
+            encoded_string = base64.b64encode(file)
+            stout = encoded_string.decode("utf-8")
+            TOKEN = self.config["GH_TOKEN"]
+            USERNAME = self.config["GH_USERNAME"]
+            REPO = self.config["GH_REPO"]
+            url = f"https://api.github.com/repos/{USERNAME}/{REPO}/contents/{fname}"
             head = {
-                "Authorization": f"token {self.config['GH_TOKEN']}",
+                "Authorization": f"token {TOKEN}",
                 "Accept": "application/vnd.github.v3+json",
             }
-            r = requests.get(url, headers=head)
-            if r.status_code == 200:
-                files = [item["name"] for item in r.json() if item["type"] == "file"]
-                return files
+            git_data = '{"message": "Upload file", "content":' + '"' + stout + '"' + "}"
+            r = requests.put(url, headers=head, data=git_data)
+            if int(r.status_code) == 201:
+                uploaded_to = f"https://github.com/{USERNAME}/{REPO}"
+                uploaded_to_raw = "/".join(
+                    r.json()["content"].get("download_url").split("/")[:-1]
+                    + [fname.replace(" ", "%20")]
+                )
+
+                # Обновляем файл full.txt
+                if await self.update_full_txt(USERNAME, REPO):
+                    await utils.answer(
+                        message,
+                        (
+                            f"Файл <code>{fname}</code> успешно загружен на <a"
+                            f" href=\f'{uploaded_to}'>репозиторий!</a>\n\nПрямая ссылка:"
+                            f" <code>{uploaded_to_raw}</code>"
+                        ),
+                    )
+                    return
+                else:
+                    await utils.answer(message, "Не удалось обновить full.txt")
+                    return
+
+            elif int(r.status_code) == 422:
+                await utils.answer(message, self.strings("exist_422", message))
+                return
             else:
-                return None
-        except Exception as e:
-            logger.error(f"Failed to list files in repo: {e}")
-            return None
-
-    @loader.owner
-    async def gitlistcmd(self, message):
-        if self.config["GH_TOKEN"] == "TOKEN":
-            await utils.answer(message, self.strings("token_not_found", message))
+                json_resp = json.loads(r.text)
+                git_resp = json_resp["message"]
+                await utils.answer(
+                    message,
+                    (
+                        "Произошла неизвестная ошибка! Ответ сервера:\n"
+                        f" <code>{git_resp}</code>"
+                    ),
+                )
+                return
+        except ConnectionError:
+            await utils.answer(message, self.strings("connection_error", message))
             return
-        if self.config["GH_USERNAME"] == "USERNAME":
-            await utils.answer(message, self.strings("username_not_found", message))
-            return
-        if self.config["GH_REPO"] == "REPOSITORY":
-            await utils.answer(message, self.strings("repo_not_found", message))
-            return
-
-        username = self.config["GH_USERNAME"]
-        repo = self.config["GH_REPO"]
-
-        files = await self.list_files_in_repo(username, repo)
-
-        if files is None:
+        except MissingSchema:
             await utils.answer(message, self.strings("repo_error", message))
             return
-        elif not files:
-            await utils.answer(message, self.strings("no_files_found", message))
+        except ChunkedEncodingError:
+            await utils.answer(message, self.strings("token_error", message))
             return
-        else:
-            files_str = "\n".join(files)
-            await utils.answer(message, f"{self.strings('list_files_header', message)}{files_str}")
-
-    @loader.owner
-    async def gitcheckcmd(self, message):
-        if self.config["GH_TOKEN"] == "TOKEN":
-            await utils.answer(message, self.strings("token_not_found", message))
-            return
-        if self.config["GH_USERNAME"] == "USERNAME":
-            await utils.answer(message, self.strings("username_not_found", message))
-            return
-        if self.config["GH_REPO"] == "REPOSITORY":
-            await utils.answer(message, self.strings("repo_not_found", message))
-            return
-
-        username = self.config["GH_USERNAME"]
-        repo = self.config["GH_REPO"]
-
-        # Проверяем наличие файла full.txt
-        full_txt_exists = await self.list_files_in_repo(username, repo)
-        if "full.txt" not in full_txt_exists:
-            try:
-                url = f"https://api.github.com/repos/{username}/{repo}/contents/full.txt"
-                head = {
-                    "Authorization": f"token {self.config['GH_TOKEN']}",
-                    "Accept": "application/vnd.github.v3+json",
-                }
-                content = ""
-
-                encoded_content = base64.b64encode(content.encode("utf-8")).decode("utf-8")
-                commit_message = "Create full.txt"
-
-                git_data = {
-                    "message": commit_message,
-                    "content": encoded_content,
-                }
-
-                r = requests.put(url, headers=head, data=json.dumps(git_data))
-                if r.status_code == 201:
-                    await utils.answer(message, "Файл full.txt успешно создан.")
-                else:
-                    await utils.answer(message, "Не удалось создать файл full.txt.")
-            except Exception as e:
-                logger.error(f"Failed to create full.txt: {e}")
-                await utils.answer(message, "Произошла ошибка при создании full.txt.")
-            return
-
-        # Получаем текущие имена файлов в репозитории
-        current_files = await self.list_files_in_repo(username, repo)
-
-        if current_files is None:
-            await utils.answer(message, self.strings("repo_error", message))
-            return
-
-        # Проверяем, нужно ли обновить файл full.txt
-        full_txt_url = f"https://raw.githubusercontent.com/{username}/{repo}/main/full.txt"
-        try:
-            r = requests.get(full_txt_url)
-            if r.status_code == 200:
-                content = r.text.strip().split("\n")
-                existing_files = [line.strip() for line in content if line.strip()]
-            else:
-                existing_files = []
-        except Exception as e:
-            logger.error(f"Failed to fetch full.txt: {e}")
-            existing_files = []
-
-        files_to_update = list(set(existing_files) - set(current_files))
-
-        if files_to_update:
-            try:
-                url = f"https://api.github.com/repos/{username}/{repo}/contents/full.txt"
-                head = {
-                    "Authorization": f"token {self.config['GH_TOKEN']}",
-                    "Accept": "application/vnd.github.v3+json",
-                }
-
-                new_content = "\n".join(current_files)
-                encoded_content = base64.b64encode(new_content.encode("utf-8")).decode("utf-8")
-                commit_message = "Update full.txt"
-
-                git_data = {
-                    "message": commit_message,
-                    "content": encoded_content,
-                    "sha": r.json()["sha"] if r.status_code == 200 else None,
-                }
-
-                r = requests.put(url, headers=head, data=json.dumps(git_data))
-                if r.status_code == 200:
-                    await utils.answer(message, "Файл full.txt успешно обновлен.")
-                else:
-                    await utils.answer(message, "Не удалось обновить файл full.txt.")
-            except Exception as e:
-                logger.error(f"Failed to update full.txt: {e}")
-                await utils.answer(message, "Произошла ошибка при обновлении full.txt.")
-        else:
-            await utils.answer(message, "Файл full.txt не требует обновления.")
-
-    async def update_full_txt(self, username, repo, existing_files):
-        try:
-            url = f"https://api.github.com/repos/{username}/{repo}/contents/full.txt"
-            head = {
-                "Authorization": f"token {self.config['GH_TOKEN']}",
-                "Accept": "application/vnd.github.v3+json
-          
+            
