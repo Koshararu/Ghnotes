@@ -54,12 +54,12 @@ class TTDownloadMod(loader.Module):
                 
                 # Отправка фотографий
                 if photos:
-                    await message.client.send_file(message.to_id, photos, caption="По ссылке лень переходить было")
+                    await message.client.send_file(message.to_id, photos, caption="")
 
                 # Отправка документов (видео/аудио)
                 if documents:
                     for doc in documents:
-                        await message.client.send_file(message.to_id, doc, caption="По ссылке лень переходить было")
+                        await message.client.send_file(message.to_id, doc, caption="")
         finally:
             # Удаляем обработчик событий и сообщения
             message.client.remove_event_handler(handler, events.NewMessage(incoming=True, from_users=chat))            
