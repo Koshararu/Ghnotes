@@ -12,8 +12,8 @@
 
 from .. import loader, utils
 
-class DaResponder(loader.Module):
-    """Отвечает на "Da" или "da" с "Pizda" или "pizda"."""
+class mnResponder(loader.Module):
+    """Отвечает на мало - много"."""
 
     strings = {"name": "DaResponder"}
 
@@ -21,8 +21,8 @@ class DaResponder(loader.Module):
         self.db = db
 
     async def dacmd(self, message):
-        """.da - Добавить чат/личные сообщения в базу.
-        .da -l - Показать список чатов в базе."""
+        """.mn - Добавить чат/личные сообщения в базу.
+        .mn -l - Показать список чатов в базе."""
         args = utils.get_args_raw(message)
         users_list = self.db.get("DaResponder", "users", [])
 
@@ -40,10 +40,10 @@ class DaResponder(loader.Module):
             users_list.append(user_id)
             await utils.answer(message, f"Ид {user_id} добавлен.")
         
-        self.db.set("DaResponder", "users", users_list)
+        self.db.set("mnResponder", "users", users_list)
 
     async def watcher(self, message):
-        users_list = self.db.get("DaResponder", "users", [])
+        users_list = self.db.get("mnResponder", "users", [])
         
         if message.chat_id not in users_list:
             return
