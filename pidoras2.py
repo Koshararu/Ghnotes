@@ -5,10 +5,10 @@ from telethon import events
 from telethon.tl.types import MessageMediaPhoto, MessageMediaDocument
 from .. import loader, utils
 
-class TTDownloadMod(loader.Module):
+class TTDownloapidor(loader.Module):
     """Скачать видео/фото/аудио из TikTok"""
 
-    strings = {"name": "TTDownloadMod"}
+    strings = {"name": "TTDownloadpidor"}
 
     async def client_ready(self, client, db):
         self.db = db
