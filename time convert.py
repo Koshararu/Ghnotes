@@ -1,9 +1,9 @@
 from .. import loader, utils
 
-class TimeConverterMod(loader.Module):
+class TimeConverter(loader.Module):
     """Конвертирует время из одного формата в другой"""
 
-    strings = {"name": "TimeConverterMod"}
+    strings = {"name": "TimeConverter"}
 
     async def ctcmd(self, message):
         """.ct <time> - Конвертировать время (например, 10m, 1440m, 2h)"""
