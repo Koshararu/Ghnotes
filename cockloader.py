@@ -100,7 +100,7 @@ class FileUploaderMod(loader.Module):
         await utils.answer(message, self.strings("uploaded").format(url))
 
     async def kappacmd(self, message: Message):
-        """Upload to femboy beauty"""
+        """Upload to kappa.lol"""
         message = await utils.answer(message, self.strings("uploading"))
         file = await self.get_media(message)
         if not file:
@@ -109,12 +109,12 @@ class FileUploaderMod(loader.Module):
         try:
             kappa = await utils.run_sync(
                 requests.post,
-                "https://femboy.beauty/api/upload",
+                "https://kappa.lol/api/upload",
                 files={"file": file},
             )
         except ConnectionError:
             await utils.answer(message, self.strings("err"))
             return
 
-        url = f"https://femboy.beauty/{femboy.json()['id']}"
+        url = f"https://kappa.lol/{kappa.json()['id']}"
         await utils.answer(message, self.strings("uploaded").format(url))
