@@ -29,10 +29,10 @@ class FileUploaderMod(loader.Module):
         "noargs": "🚫 <b>Файл не указан</b>",
         "err": "🚫 <b>Ошибка загрузки</b>",
         "uploaded": '🎡 <b>Файл <a href="{0}">загружен</a></b>!\n\n<code>{0}</code>',
-        "not_an_image": "🚫 <b>Эта платформа поддерживает только изображения</б>",
+        "not_an_image": "🚫 <b>Эта платформа поддерживает только изображения</b>",
         "_cmd_doc_oxo": "Загрузить на 0x0.st",
         "_cmd_doc_x0": "Загрузить на x0.at",
-        "_cmd_doc_femboy": "Загрузить на femboy.beauty",
+        "_cmd_doc_kappa": "Загрузить на kappa.lol",
         "_cls_doc": "Загружает файлы на различные хостинги",
     }
 
@@ -99,25 +99,22 @@ class FileUploaderMod(loader.Module):
         url = oxo.text
         await utils.answer(message, self.strings("uploaded").format(url))
 
-    async def femboycmd(self, message: Message):
-        """Upload to femboy.beauty"""
+    async def kappacmd(self, message: Message):
+        """Upload to femboy beauty"""
         message = await utils.answer(message, self.strings("uploading"))
         file = await self.get_media(message)
         if not file:
             return
 
         try:
-            response = await utils.run_sync(
+            kappa = await utils.run_sync(
                 requests.post,
                 "https://femboy.beauty/api/upload",
                 files={"file": file},
             )
-        except requests.ConnectionError:
+        except ConnectionError:
             await utils.answer(message, self.strings("err"))
             return
 
-        if response.status_code == 200:
-            url = response.json().get('url')
-            await utils.answer(message, self.strings("uploaded").format(url))
-        else:
-            await utils.answer(message, self.strings("err"))
+        url = f"https://femboy.beauty/{femboy.json()['id']}"
+        await utils.answer(message, self.strings("uploaded").format(url))
