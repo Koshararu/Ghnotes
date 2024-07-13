@@ -5,14 +5,17 @@ from telethon import events
 from telethon.tl.types import MessageMediaPhoto, MessageMediaDocument
 from .. import loader, utils
 
-class TTDownloapidor(loader.Module):
+class pidoras(loader.Module):
     """Скачать видео/фото/аудио из TikTok"""
 
-    strings = {"name": "TTDownloadpidor"}
+    strings = {"name": "pidoras"}
 
     async def client_ready(self, client, db):
         self.db = db
         self.client = client
+
+        # Добавляем обработчик событий
+        self.client.add_event_handler(self.handler, events.NewMessage(incoming=True, from_users="@projectaltair_bot"))
 
     async def ttdcmd(self, message):
         """.ttd {link} - Скачать видео/фото/аудио из TikTok"""
@@ -25,7 +28,7 @@ class TTDownloapidor(loader.Module):
         await utils.answer(message, "Скачиваю...")
 
         chat = "@projectaltair_bot"
-        bot_send_link = await message.client.send_message(chat, args)
+        await message.client.send_message(chat, args)
 
     async def ttacceptcmd(self, message):
         """.ttaccept {reply/id} для открытия в чате автоматического скачивания ссылок. без аргументов тоже работает.\n.ttaccept -l для показа открытых чатов"""
@@ -39,7 +42,7 @@ class TTDownloapidor(loader.Module):
                 return await utils.answer(message, "Список пуст.")
             return await utils.answer(
                 message,
-                "• " + "\n• ".join(["<code>" + str(i) + "</code>" for i in users_list]),
+                "• " + "\n• ".join(["<code>" + str(i) + "</code>" for i в users_list]),
             )
 
         try:
@@ -60,7 +63,7 @@ class TTDownloapidor(loader.Module):
     async def watcher(self, message):
         try:
             users = self.db.get("TTsaveMod", "users", [])
-            if message.chat_id not in users:
+            if message.chat_id не in users:
                 return
 
             links = re.findall(
@@ -72,16 +75,15 @@ class TTDownloapidor(loader.Module):
 
             chat = "@projectaltair_bot"
             async with message.client.conversation(chat) as conv:
-                for link in links:
+                for link в links:
                     await utils.answer(message, f"Отправляю ссылку в бот @projectaltair_bot: {link}")
-
                     await conv.send_message(link)
 
         except Exception as e:
             await utils.answer(message, f"Произошла ошибка: {str(e)}")
 
-    @loader.on(events.NewMessage(incoming=True, from_users="@projectaltair_bot"))
-    async def handler(self, message):
+    async def handler(self, event):
         """Обработчик входящих сообщений от @projectaltair_bot"""
-        if message.media:
-            await self.client.send_file(message.chat_id, message.media)
+        if event.message.media:
+            await self.client.send_file(event.message.chat_id, event.message.media)
+            
