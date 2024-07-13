@@ -12,7 +12,7 @@ from .. import loader, utils
 
 
 @loader.tds
-class FileUploaderMod(loader.Module):
+class Uploader(loader.Module):
     """Different engines file uploader"""
 
     strings = {
@@ -32,7 +32,7 @@ class FileUploaderMod(loader.Module):
         "not_an_image": "🚫 <b>Эта платформа поддерживает только изображения</b>",
         "_cmd_doc_oxo": "Загрузить на 0x0.st",
         "_cmd_doc_x0": "Загрузить на x0.at",
-        "_cmd_doc_kappa": "Загрузить на kappa.lol",
+        "_cmd_doc_femboy": "Загрузить на femboy.beauty",
         "_cls_doc": "Загружает файлы на различные хостинги",
     }
 
@@ -99,22 +99,22 @@ class FileUploaderMod(loader.Module):
         url = oxo.text
         await utils.answer(message, self.strings("uploaded").format(url))
 
-    async def kappacmd(self, message: Message):
-        """Upload to kappa.lol"""
+    async def femboycmd(self, message: Message):
+        """Upload to femboy.beauty"""
         message = await utils.answer(message, self.strings("uploading"))
         file = await self.get_media(message)
         if not file:
             return
 
         try:
-            kappa = await utils.run_sync(
+            femboy = await utils.run_sync(
                 requests.post,
-                "https://kappa.lol/api/upload",
+                "https://femboy.beauty/api/upload",
                 files={"file": file},
             )
         except ConnectionError:
             await utils.answer(message, self.strings("err"))
             return
 
-        url = f"https://kappa.lol/{kappa.json()['id']}"
+        url = femboy.json()['url']
         await utils.answer(message, self.strings("uploaded").format(url))
