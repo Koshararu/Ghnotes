@@ -47,7 +47,7 @@ class TTDownloadMod(loader.Module):
         message.client.add_event_handler(handler, events.NewMessage(incoming=True, from_users=chat))
 
         try:
-            await asyncio.sleep(2)  # Ждем ответы от бота в течение 2 секунд после последнего сообщения
+            await asyncio.sleep(3)  # Ждем ответы от бота в течение 2 секунд после последнего сообщения
             if media_messages:
                 photos = [msg.media for msg in media_messages if isinstance(msg.media, MessageMediaPhoto)]
                 documents = [msg.media for msg in media_messages if isinstance(msg.media, MessageMediaDocument)]
