@@ -12,7 +12,7 @@ from .. import loader, utils
 
 
 @loader.tds
-class Uploader(loader.Module):
+class FileUploaderMod(loader.Module):
     """Different engines file uploader"""
 
     strings = {
@@ -29,7 +29,7 @@ class Uploader(loader.Module):
         "noargs": "🚫 <b>Файл не указан</b>",
         "err": "🚫 <b>Ошибка загрузки</b>",
         "uploaded": '🎡 <b>Файл <a href="{0}">загружен</a></b>!\n\n<code>{0}</code>',
-        "not_an_image": "🚫 <b>Эта платформа поддерживает только изображения</b>",
+        "not_an_image": "🚫 <b>Эта платформа поддерживает только изображения</б>",
         "_cmd_doc_oxo": "Загрузить на 0x0.st",
         "_cmd_doc_x0": "Загрузить на x0.at",
         "_cmd_doc_femboy": "Загрузить на femboy.beauty",
@@ -107,14 +107,17 @@ class Uploader(loader.Module):
             return
 
         try:
-            femboy = await utils.run_sync(
+            response = await utils.run_sync(
                 requests.post,
                 "https://femboy.beauty/api/upload",
                 files={"file": file},
             )
-        except ConnectionError:
+        except requests.ConnectionError:
             await utils.answer(message, self.strings("err"))
             return
 
-        url = femboy.json()['url']
-        await utils.answer(message, self.strings("uploaded").format(url))
+        if response.status_code == 200:
+            url = response.json().get('url')
+            await utils.answer(message, self.strings("uploaded").format(url))
+        else:
+            await utils.answer(message, self.strings("err"))
